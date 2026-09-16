@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Poppins } from "next/font/google";
 
 const poppins = Poppins({
@@ -13,17 +14,15 @@ export function DiscoverLogo() {
       >
         Discover
       </span>
-      <span
-        className="absolute top-[-26px] left-full -translate-x-1 rotate-[36deg]"
+      <Image
+        src="/logo/discover-lens.png"
+        alt=""
         aria-hidden="true"
-      >
-        <span className="relative flex h-[42px] w-[42px] items-center justify-center rounded-full border-[3px] border-neutral-500 bg-white">
-          <span className="-rotate-[36deg] text-[19px] leading-none">
-            😍
-          </span>
-        </span>
-        <span className="absolute top-[32px] left-[30px] h-[4px] w-[18px] origin-top-left rotate-45 rounded-full bg-neutral-500" />
-      </span>
+        width={62}
+        height={65}
+        priority
+        className="absolute top-[-27px] left-full -translate-x-0.5 select-none"
+      />
     </div>
   );
 }
