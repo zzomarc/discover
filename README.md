@@ -64,6 +64,28 @@ L'app funziona anche **senza** Supabase collegato: le pagine restano visibili, m
 
 Nessun'altra configurazione è richiesta: non serve una service role key né una connection string al database per questo step.
 
+## Struttura di un "trip" (i post della dashboard)
+
+Le card che vedi in `/dashboard` ("Camper trip", tag, badge partecipanti) sono per ora contenuto statico di esempio. Il **modello dati per renderle reali** è già pronto lato backend:
+
+- **Tabella** `public.trips` su Supabase (vedi [`supabase/schema.sql`](./supabase/schema.sql)). Si chiama `trips` e non `posts` perché nel progetto Supabase esiste già una tabella `posts` scollegata da questa app — per non entrarci in conflitto i post di Discover vivono altrove.
+- **Campi**, e come si accoppiano alla UI della card:
+  | Campo | Colonna | Dove appare |
+  | --- | --- | --- |
+  | Tipo di attività (`cinema` \| `concert`, dropdown) | `activity_type` | Immagine della card (placeholder colorato + icona per ora, vedi `components/trips/activity-image.tsx`; basta aggiungere una foto in `public/images/activities/<tipo>.jpg` per sostituirlo) |
+  | Luogo | `location` (+ `location_place_id`/`lat`/`lng`, opzionali, per un futuro autocomplete Google Places) | Tag `#where` |
+  | Giorno/periodo | `scheduled_for` | Tag `#when` |
+  | Con quante persone | `participants_wanted` | Badge partecipanti in basso a destra (mostrato come `0/{participants_wanted}`, dato che non esiste ancora un flusso per "unirsi" a un trip) |
+  | — (automatico) | `user_id` → `profiles` | Avatar (di default) e nome utente in alto nella card, tramite `display_name` se impostato, altrimenti la parte dell'email prima della "@" |
+- **Sicurezza (RLS)**: chiunque sia loggato può vedere tutti i trip (feed condiviso), ma solo il creatore può crearli/modificarli/cancellarli. La tabella `profiles` ora è leggibile da qualsiasi utente loggato (prima solo dal proprietario), perché serve a mostrare "chi ha creato" ogni trip nel feed.
+- **Codice**: `src/lib/trips/` contiene i tipi (`types.ts`), l'azione server per creare un trip (`actions.ts`, `createTripAction`, valida i campi e richiede un utente loggato), la query per leggere il feed (`queries.ts`, `getFeedTrips`) e le funzioni di formattazione (`format.ts`: tag `#where`/`#when`, badge partecipanti, nome visualizzato).
+
+**Cosa manca ancora** (prossimi step, non richiesti in questo giro):
+- Il **pulsante e il form "crea trip"** nella UI (dropdown attività, campo luogo, selezione data, numero persone) che chiama `createTripAction`.
+- L'**autocomplete del luogo**: per usare Google Places (o alternative come Mapbox) serve una API key da aggiungere come secret.
+- Collegare `/dashboard` a `getFeedTrips()` per mostrare i trip reali al posto delle due card demo.
+- Una UI per impostare `display_name` nel proprio profilo (per ora si vede solo la parte dell'email prima della "@").
+
 ## Sviluppo locale
 
 Requisiti: Node.js 18+.
@@ -100,6 +122,12 @@ src/
   proxy.ts                 # Refresh sessione Supabase + protezione rotte (ex "middleware")
   lib/
     auth-actions.ts        # Server Actions: signUpAction, signInAction, signOutAction
+    trips/
+      types.ts              # Tipi Trip/ActivityType + mapping riga Supabase → oggetto
+      activity-types.ts     # Metadata per tipo attività (etichetta, colori placeholder)
+      actions.ts             # Server Action createTripAction (non ancora collegata a un form)
+      queries.ts              # getFeedTrips: legge i trip + profilo del creatore
+      format.ts                # Tag #where/#when, badge partecipanti, nome visualizzato
     supabase/
       client.ts             # Client Supabase per i Client Component
       server.ts              # Client Supabase per Server Component/Actions (cookie-based)
@@ -114,6 +142,8 @@ src/
       signup-form.tsx        # Form email + password per la registrazione
       signin-form.tsx        # Form email + password per l'accesso
       submit-button.tsx      # Bottone submit con stato "in corso"
+    trips/
+      activity-image.tsx     # Placeholder immagine per tipo attività (gradiente + icona)
     login/
       discover-logo.tsx     # Wordmark "Discover" + logo lente
       social-icons.tsx      # Icone Google/Apple
