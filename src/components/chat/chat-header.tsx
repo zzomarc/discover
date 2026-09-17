@@ -1,11 +1,14 @@
 import { ChevronLeft, Phone, Video } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export function ChatHeader() {
   return (
     <>
       <header className="flex h-[68px] shrink-0 items-center gap-3 px-5">
-        <ChevronLeft className="h-6 w-6 shrink-0 text-black" strokeWidth={2} />
+        <Link href="/dashboard" aria-label="Back to Discover">
+          <ChevronLeft className="h-6 w-6 shrink-0 text-black" strokeWidth={2} />
+        </Link>
 
         <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full">
           <Image
