@@ -16,23 +16,25 @@ export function SignInForm() {
 
   return (
     <form action={formAction} className="mt-2.5 flex w-full flex-col gap-[18px]">
-      <Input
-        type="email"
-        name="email"
-        placeholder="email@domain.com"
-        autoComplete="email"
-        required
-        className={inputClassName}
-      />
+      <div className="flex w-full flex-col gap-2">
+        <Input
+          type="email"
+          name="email"
+          placeholder="email@domain.com"
+          autoComplete="email"
+          required
+          className={inputClassName}
+        />
 
-      <Input
-        type="password"
-        name="password"
-        placeholder="Password"
-        autoComplete="current-password"
-        required
-        className={inputClassName}
-      />
+        <Input
+          type="password"
+          name="password"
+          placeholder="Password"
+          autoComplete="current-password"
+          required
+          className={inputClassName}
+        />
+      </div>
 
       {state?.error && (
         <p className="-mt-1.5 text-[13px] text-red-500" role="alert">
