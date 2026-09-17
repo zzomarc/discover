@@ -2,27 +2,38 @@
 
 Progetto "Discover" di Marco Rizzo.
 
-Questo repository contiene, per ora, solo la **UI statica della schermata di login** ("Create an account"), realizzata per essere visivamente identica al design di riferimento fornito. Non è presente alcuna logica di autenticazione: i campi e i bottoni sono solo grafica, pronti per essere collegati in un secondo step.
+Questo repository contiene, per ora, solo la **UI statica** dell'app: la schermata di login ("Create an account") e la dashboard successiva al login. Sono realizzate per essere visivamente identiche ai design di riferimento forniti. Non è presente alcuna logica di autenticazione o dati reali: campi, bottoni e liste sono solo grafica, pronti per essere collegati in un secondo step.
 
 ## Stack
 
 - [Next.js](https://nextjs.org/) (App Router) + TypeScript
 - [Tailwind CSS v4](https://tailwindcss.com/)
 - [shadcn/ui](https://ui.shadcn.com/) per i componenti primitivi (`Button`, `Input`)
+- [lucide-react](https://lucide.dev/) per le icone (menu, ricerca, chat, avatar di default, ecc.)
 - Font [Geist](https://vercel.com/font) per i testi e [Poppins](https://fonts.google.com/specimen/Poppins) (peso 800) per il wordmark "Discover", per riprodurre fedelmente il font geometrico del logo
 
-## Cosa contiene la schermata
+## Pagine
+
+### `/` — Login ("Create an account")
 
 - Mockup della status bar iOS in alto (ora, icone segnale/wifi/batteria)
-- Logo "Discover" con una lente d'ingrandimento contenente l'emoji 😍 al posto del vetro
+- Logo "Discover" con l'icona della lente d'ingrandimento
 - Titolo "Create an account" e sottotitolo
 - Campo email, bottone nero "Continue"
 - Divisore "or"
 - Bottoni "Continue with Google" e "Continue with Apple"
 - Testo legale in fondo con link "Terms of Service" e "Privacy Policy"
-- Home indicator iOS in basso
 
-Tutto il contenuto è racchiuso in un contenitore in stile mobile (max-width 430px, centrato), così la pagina resta leggibile e fedele al design anche su schermi desktop.
+### `/dashboard` — Dashboard (dopo il login)
+
+- Header con menu, titolo "Discover" e avatar profilo (in alto a destra)
+- Pillole filtro "Filters" (attiva) e "Tab"
+- Lista di card "viaggio": avatar autore + nome, foto, titolo, tag (`#where`, `#when`, `#who`) e, quando presente, un badge con partecipanti (es. "0/2")
+- Bottom tab bar con 4 icone (home, ricerca, scambio, chat)
+
+Rispetto allo screenshot di riferimento, **tutte le foto profilo** (header, autore della card, badge partecipanti) usano un **avatar di default** generico (icona persona su sfondo grigio) invece della foto reale, come richiesto. La foto del viaggio in camper resta invece quella del design, perché fa parte del contenuto del post e non è una foto profilo.
+
+Entrambe le pagine condividono lo stesso mockup di dispositivo (status bar iOS + home indicator) tramite il componente `PhoneFrame`, e sono racchiuse in un contenitore in stile mobile (max-width 430px, centrato), così restano leggibili e fedeli al design anche su schermi desktop.
 
 ## Sviluppo locale
 
@@ -33,7 +44,7 @@ npm install
 npm run dev
 ```
 
-L'app sarà disponibile su [http://localhost:4127](http://localhost:4127) (porta personalizzata, vedi script `dev` in `package.json`).
+L'app sarà disponibile su [http://localhost:4127](http://localhost:4127) (porta personalizzata, vedi script `dev` in `package.json`). La dashboard è su [http://localhost:4127/dashboard](http://localhost:4127/dashboard).
 
 Altri comandi utili:
 
@@ -48,14 +59,29 @@ npm run lint    # esegue eslint
 ```
 src/
   app/
-    page.tsx          # Schermata di login (Create an account)
-    layout.tsx         # Layout root, font, metadata
-    globals.css         # Tema Tailwind / shadcn
+    page.tsx              # Schermata di login (Create an account)
+    dashboard/
+      page.tsx             # Dashboard post-login
+    layout.tsx             # Layout root, font, metadata
+    globals.css            # Tema Tailwind / shadcn
   components/
+    chrome/
+      phone-frame.tsx       # Wrapper condiviso: contenitore mobile + status bar + home indicator
+      ios-status-bar.tsx    # Mockup status bar iOS
+      home-indicator.tsx    # Home indicator iOS
     login/
-      discover-logo.tsx    # Wordmark "Discover" + lente con emoji
-      ios-status-bar.tsx   # Mockup status bar iOS
-      home-indicator.tsx   # Home indicator iOS
-      social-icons.tsx     # Icone Google/Apple
-    ui/                    # Componenti shadcn (Button, Input)
+      discover-logo.tsx     # Wordmark "Discover" + logo lente
+      social-icons.tsx      # Icone Google/Apple
+    dashboard/
+      dashboard-header.tsx  # Header con menu, titolo e avatar
+      filter-pills.tsx      # Pillole "Filters" / "Tab"
+      trip-card.tsx         # Card viaggio (avatar, foto, titolo, tag, badge)
+      tag-pill.tsx          # Singolo tag (#where, #when, ...)
+      participants-badge.tsx# Badge partecipanti (avatar + conteggio)
+      default-avatar.tsx    # Avatar profilo di default (icona persona)
+      bottom-nav.tsx        # Tab bar inferiore
+    ui/                     # Componenti shadcn (Button, Input)
+public/
+  logo/discover-lens.png    # Logo lente d'ingrandimento
+  images/camper-trip.jpg    # Foto del viaggio in camper (contenuto della card)
 ```
