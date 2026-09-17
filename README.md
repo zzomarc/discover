@@ -80,11 +80,14 @@ Le card che vedi in `/dashboard` ("Camper trip", tag, badge partecipanti) sono p
 - **Sicurezza (RLS)**: chiunque sia loggato può vedere tutti i trip (feed condiviso), ma solo il creatore può crearli/modificarli/cancellarli. La tabella `profiles` ora è leggibile da qualsiasi utente loggato (prima solo dal proprietario), perché serve a mostrare "chi ha creato" ogni trip nel feed.
 - **Codice**: `src/lib/trips/` contiene i tipi (`types.ts`), l'azione server per creare un trip (`actions.ts`, `createTripAction`, valida i campi e richiede un utente loggato), la query per leggere il feed (`queries.ts`, `getFeedTrips`) e le funzioni di formattazione (`format.ts`: tag `#where`/`#when`, badge partecipanti, nome visualizzato).
 
+**Fatto**: il pulsante "+" al centro della bottom bar apre una finestra modale ("Create a trip") con dropdown attività, campo luogo, data/ora e numero di persone; alla conferma chiama `createTripAction` e la dashboard (ora collegata a `getFeedTrips()`) mostra i trip reali al posto delle due card demo, con un empty state ("No trips yet") quando non ce ne sono ancora.
+
 **Cosa manca ancora** (prossimi step, non richiesti in questo giro):
-- Il **pulsante e il form "crea trip"** nella UI (dropdown attività, campo luogo, selezione data, numero persone) che chiama `createTripAction`.
-- L'**autocomplete del luogo**: per usare Google Places (o alternative come Mapbox) serve una API key da aggiungere come secret.
-- Collegare `/dashboard` a `getFeedTrips()` per mostrare i trip reali al posto delle due card demo.
+- L'**autocomplete del luogo**: per usare Google Places (o alternative come Mapbox) serve una API key da aggiungere come secret; per ora il campo "Location" è testo libero.
 - Una UI per impostare `display_name` nel proprio profilo (per ora si vede solo la parte dell'email prima della "@").
+- Un vero flusso di "partecipazione" ad un trip (per ora il badge mostra sempre `0/N`, nessuno può ancora unirsi).
+
+> **Nota tecnica importante**: in modalità `next dev`, senza `allowedDevOrigins` in `next.config.ts` il server di sviluppo rifiuta la connessione WebSocket dell'Hot Module Reload per l'host `127.0.0.1`/`localhost` (errore silenzioso: React non completa mai l'hydration, quindi bottoni/dialoghi/dropdown non rispondono ai click, anche se il codice è corretto — una build di produzione infatti funziona perfettamente). L'ho già configurato in questo repo; se lavori in un altro ambiente/host, potrebbe servire aggiungere anche quel dominio all'array.
 
 ## Sviluppo locale
 
@@ -144,6 +147,7 @@ src/
       submit-button.tsx      # Bottone submit con stato "in corso"
     trips/
       activity-image.tsx     # Placeholder immagine per tipo attività (gradiente + icona)
+      create-trip-dialog.tsx # Bottone "+" nella bottom bar + modale "Create a trip"
     login/
       discover-logo.tsx     # Wordmark "Discover" + logo lente
       social-icons.tsx      # Icone Google/Apple
@@ -160,7 +164,7 @@ src/
       chat-input.tsx         # Barra di input in basso
       message-bubble.tsx     # Bolla singola (variante sent/received)
       message-group.tsx      # Gruppo di bolle consecutive + avatar
-    ui/                     # Componenti shadcn (Button, Input)
+    ui/                     # Componenti shadcn (Button, Input, Dialog, Select, Label)
 public/
   logo/discover-lens.png    # Logo lente d'ingrandimento
   images/camper-trip.jpg    # Foto del viaggio in camper (contenuto della card)

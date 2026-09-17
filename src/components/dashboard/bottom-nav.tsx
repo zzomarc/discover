@@ -1,10 +1,12 @@
 import { ArrowLeftRight, MessageCircle, Search } from "lucide-react";
+import { CreateTripDialog } from "@/components/trips/create-trip-dialog";
 
 export function BottomNav() {
   return (
     <nav className="flex h-[64px] shrink-0 items-center justify-between px-9">
       <HomeIcon />
       <Search className="h-6 w-6 text-neutral-400" strokeWidth={1.75} />
+      <CreateTripDialog />
       <ArrowLeftRight className="h-6 w-6 text-neutral-400" strokeWidth={1.75} />
       <MessageCircle className="h-6 w-6 text-neutral-400" strokeWidth={1.75} />
     </nav>
