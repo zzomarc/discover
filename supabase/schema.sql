@@ -54,6 +54,17 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- Backfill: utenti registrati PRIMA che questa tabella/trigger esistessero
+-- non hanno ancora una riga profiles (il trigger scatta solo sui nuovi
+-- signup). Senza questo, quegli utenti non riuscirebbero a creare un trip
+-- (vedi il vincolo trips_user_id_profiles_fkey più sotto). Sicuro da
+-- rieseguire: aggiunge solo le righe mancanti.
+insert into public.profiles (id, email)
+select u.id, u.email
+from auth.users u
+left join public.profiles p on p.id = u.id
+where p.id is null;
+
 
 -- Discover · schema "trip" (i post mostrati come card nella dashboard)
 -- Chiamata "trips" (non "posts") perché nel progetto Supabase risulta già
