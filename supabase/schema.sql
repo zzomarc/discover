@@ -133,3 +133,118 @@ drop policy if exists "Users can delete their own trips" on public.trips;
 create policy "Users can delete their own trips"
   on public.trips for delete
   using (auth.uid() = user_id);
+
+
+-- Discover · candidature ("apply" al bubble partecipanti di una card) +
+-- chat di gruppo del trip (creatore + candidati accettati).
+
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'trip_application_status') then
+    create type public.trip_application_status as enum ('pending', 'accepted', 'declined');
+  end if;
+end $$;
+
+create table if not exists public.trip_applications (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references public.trips (id) on delete cascade,
+  applicant_id uuid not null references public.profiles (id) on delete cascade,
+  status public.trip_application_status not null default 'pending',
+  created_at timestamptz not null default now(),
+  unique (trip_id, applicant_id)
+);
+
+create index if not exists trip_applications_trip_id_idx
+  on public.trip_applications (trip_id);
+
+alter table public.trip_applications enable row level security;
+
+-- Chi può vedere le candidature di un trip:
+-- - il candidato stesso (per sapere se è pending/accepted)
+-- - il creatore del trip (per gestirle)
+-- - chiunque autenticato, ma solo le candidature GIÀ accettate
+--   (serve a mostrare il conteggio 0/2 sulla card a tutti; le pending
+--   restano private).
+drop policy if exists "Applications are viewable by relevant people" on public.trip_applications;
+create policy "Applications are viewable by relevant people"
+  on public.trip_applications for select
+  to authenticated
+  using (
+    status = 'accepted'
+    or auth.uid() = applicant_id
+    or auth.uid() = (select t.user_id from public.trips t where t.id = trip_id)
+  );
+
+-- Chiunque (tranne il creatore, controllato lato server action) può
+-- candidarsi una sola volta a un trip (vincolo unique sopra).
+drop policy if exists "Users can apply to a trip" on public.trip_applications;
+create policy "Users can apply to a trip"
+  on public.trip_applications for insert
+  with check (auth.uid() = applicant_id);
+
+-- Solo il creatore del trip può accettare/rifiutare le candidature.
+drop policy if exists "Trip creators manage applications" on public.trip_applications;
+create policy "Trip creators manage applications"
+  on public.trip_applications for update
+  using (auth.uid() = (select t.user_id from public.trips t where t.id = trip_id));
+
+create table if not exists public.trip_messages (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references public.trips (id) on delete cascade,
+  sender_id uuid not null references public.profiles (id) on delete cascade,
+  content text not null check (char_length(trim(content)) > 0),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists trip_messages_trip_id_created_at_idx
+  on public.trip_messages (trip_id, created_at);
+
+alter table public.trip_messages enable row level security;
+
+-- Solo il creatore del trip e i candidati "accepted" possono leggere o
+-- scrivere nella chat di gruppo di quel trip.
+drop policy if exists "Trip members can read messages" on public.trip_messages;
+create policy "Trip members can read messages"
+  on public.trip_messages for select
+  to authenticated
+  using (
+    auth.uid() = (select t.user_id from public.trips t where t.id = trip_id)
+    or exists (
+      select 1 from public.trip_applications a
+      where a.trip_id = trip_messages.trip_id
+        and a.applicant_id = auth.uid()
+        and a.status = 'accepted'
+    )
+  );
+
+drop policy if exists "Trip members can send messages" on public.trip_messages;
+create policy "Trip members can send messages"
+  on public.trip_messages for insert
+  with check (
+    auth.uid() = sender_id
+    and (
+      auth.uid() = (select t.user_id from public.trips t where t.id = trip_id)
+      or exists (
+        select 1 from public.trip_applications a
+        where a.trip_id = trip_messages.trip_id
+          and a.applicant_id = auth.uid()
+          and a.status = 'accepted'
+      )
+    )
+  );
+
+-- Abilita gli aggiornamenti realtime sulla chat, così i nuovi messaggi
+-- compaiono senza dover ricaricare la pagina. In un blocco "do" perché
+-- "alter publication ... add table" non supporta "if not exists" e darebbe
+-- errore se rieseguito quando la tabella è già stata aggiunta.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'trip_messages'
+  ) then
+    alter publication supabase_realtime add table public.trip_messages;
+  end if;
+end $$;

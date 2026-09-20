@@ -29,6 +29,8 @@ export interface Trip {
     displayName: string | null;
     email: string;
   } | null;
+  /** Candidature visibili al chiamante (RLS: proprie, del trip che si possiede, o dei co-membri). */
+  applications?: import("@/lib/trips/applications").TripApplication[];
 }
 
 /**

@@ -5,17 +5,21 @@ import { ActivityImage } from "@/components/trips/activity-image";
 import type { ActivityType } from "@/lib/trips/types";
 
 export function TripCard({
+  tripId,
   activityType,
   creatorName,
   title,
   tags,
   participants,
+  badgeMode,
 }: {
+  tripId: string;
   activityType: ActivityType;
   creatorName: string;
   title: string;
   tags: string[];
   participants: string;
+  badgeMode: "apply" | "pending" | "chat" | "full" | "own";
 }) {
   return (
     <article className="shrink-0 rounded-2xl border border-neutral-200 p-2.5">
@@ -44,7 +48,7 @@ export function TripCard({
       </div>
 
       <div className="mt-3 flex justify-end">
-        <ParticipantsBadge count={participants} />
+        <ParticipantsBadge tripId={tripId} count={participants} mode={badgeMode} />
       </div>
     </article>
   );

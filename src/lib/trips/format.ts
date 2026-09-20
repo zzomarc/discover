@@ -30,13 +30,23 @@ export function getTripTags(trip: Pick<Trip, "location" | "scheduledFor">): [
   return [`#${trip.location}`, `#${formatTripDate(trip.scheduledFor)}`];
 }
 
-/**
- * "0/{participantsWanted}": nobody has joined yet because there's no join
- * flow implemented — the creator's own seat isn't counted either, to keep
- * this simple until a real RSVP/join feature exists.
- */
+/** Conteggio accettati / posti disponibili, es. "0/2" o "2/2". */
 export function formatParticipantsBadge(
-  trip: Pick<Trip, "participantsWanted">,
+  trip: Pick<Trip, "participantsWanted" | "applications">,
 ): string {
-  return `0/${trip.participantsWanted}`;
+  const accepted = (trip.applications ?? []).filter(
+    (a) => a.status === "accepted",
+  ).length;
+  return `${accepted}/${trip.participantsWanted}`;
+}
+
+export function acceptedCount(trip: Pick<Trip, "applications">): number {
+  return (trip.applications ?? []).filter((a) => a.status === "accepted")
+    .length;
+}
+
+export function isTripFull(
+  trip: Pick<Trip, "participantsWanted" | "applications">,
+): boolean {
+  return acceptedCount(trip) >= trip.participantsWanted;
 }

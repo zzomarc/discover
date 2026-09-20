@@ -75,17 +75,18 @@ Le card che vedi in `/dashboard` ("Camper trip", tag, badge partecipanti) sono p
   | Tipo di attività (`cinema` \| `concert`, dropdown) | `activity_type` | Immagine della card (placeholder colorato + icona per ora, vedi `components/trips/activity-image.tsx`; basta aggiungere una foto in `public/images/activities/<tipo>.jpg` per sostituirlo) |
   | Luogo | `location` (+ `location_place_id`/`lat`/`lng`, opzionali, per un futuro autocomplete Google Places) | Tag `#where` |
   | Giorno/periodo | `scheduled_for` | Tag `#when` |
-  | Con quante persone | `participants_wanted` | Badge partecipanti in basso a destra (mostrato come `0/{participants_wanted}`, dato che non esiste ancora un flusso per "unirsi" a un trip) |
+  | Con quante persone | `participants_wanted` | Badge partecipanti in basso a destra (`{accettati}/{participants_wanted}`). Il badge è anche il pulsante per candidarsi (o per aprire la chat, se sei il creatore o sei già stato accettato). |
   | — (automatico) | `user_id` → `profiles` | Avatar (di default) e nome utente in alto nella card, tramite `display_name` se impostato, altrimenti la parte dell'email prima della "@" |
 - **Sicurezza (RLS)**: chiunque sia loggato può vedere tutti i trip (feed condiviso), ma solo il creatore può crearli/modificarli/cancellarli. La tabella `profiles` ora è leggibile da qualsiasi utente loggato (prima solo dal proprietario), perché serve a mostrare "chi ha creato" ogni trip nel feed.
 - **Codice**: `src/lib/trips/` contiene i tipi (`types.ts`), l'azione server per creare un trip (`actions.ts`, `createTripAction`, valida i campi e richiede un utente loggato), la query per leggere il feed (`queries.ts`, `getFeedTrips`) e le funzioni di formattazione (`format.ts`: tag `#where`/`#when`, badge partecipanti, nome visualizzato).
 
 **Fatto**: il pulsante "+" al centro della bottom bar apre una finestra modale ("Create a trip") con dropdown attività, campo luogo, data/ora e numero di persone; alla conferma chiama `createTripAction` e la dashboard (ora collegata a `getFeedTrips()`) mostra i trip reali al posto delle due card demo, con un empty state ("No trips yet") quando non ce ne sono ancora.
 
+**Candidature e chat di gruppo**: toccando il badge partecipanti su un trip di un altro utente si invia una candidatura (`trip_applications`, stato `pending`). Il creatore del trip la vede in cima alla chat di gruppo (`/chat/[tripId]`) e può accettare o rifiutare. Solo i candidati accettati (più il creatore) possono leggere e scrivere i messaggi (`trip_messages`). Quando si raggiunge `participants_wanted` accettati, il badge diventa non cliccabile e non si possono più candidare altre persone.
+
 **Cosa manca ancora** (prossimi step, non richiesti in questo giro):
 - L'**autocomplete del luogo**: per usare Google Places (o alternative come Mapbox) serve una API key da aggiungere come secret; per ora il campo "Location" è testo libero.
 - Una UI per impostare `display_name` nel proprio profilo (per ora si vede solo la parte dell'email prima della "@").
-- Un vero flusso di "partecipazione" ad un trip (per ora il badge mostra sempre `0/N`, nessuno può ancora unirsi).
 
 > **Nota tecnica importante**: in modalità `next dev`, senza `allowedDevOrigins` in `next.config.ts` il server di sviluppo rifiuta la connessione WebSocket dell'Hot Module Reload per l'host `127.0.0.1`/`localhost` (errore silenzioso: React non completa mai l'hydration, quindi bottoni/dialoghi/dropdown non rispondono ai click, anche se il codice è corretto — una build di produzione infatti funziona perfettamente). L'ho già configurato in questo repo; se lavori in un altro ambiente/host, potrebbe servire aggiungere anche quel dominio all'array.
 
@@ -119,7 +120,10 @@ src/
     dashboard/
       page.tsx             # Dashboard post-login
     chat/
-      page.tsx             # Conversazione 1:1
+      page.tsx             # Template visivo 1:1 (screenshot di riferimento)
+      [tripId]/
+        page.tsx           # Chat di gruppo di un trip (membri ammessi)
+
     layout.tsx             # Layout root, font, metadata
     globals.css            # Tema Tailwind / shadcn
   proxy.ts                 # Refresh sessione Supabase + protezione rotte (ex "middleware")
@@ -129,7 +133,9 @@ src/
       types.ts              # Tipi Trip/ActivityType + mapping riga Supabase → oggetto
       activity-types.ts     # Metadata per tipo attività (etichetta, colori placeholder)
       actions.ts             # Server Action createTripAction (non ancora collegata a un form)
-      queries.ts              # getFeedTrips: legge i trip + profilo del creatore
+      apply-actions.ts       # applyToTripAction, respondToApplicationAction, sendTripMessageAction
+      applications.ts       # Tipi TripApplication
+      queries.ts              # getFeedTrips, getTripById, getTripMessages
       format.ts                # Tag #where/#when, badge partecipanti, nome visualizzato
     supabase/
       client.ts             # Client Supabase per i Client Component
@@ -156,21 +162,27 @@ src/
       filter-pills.tsx      # Pillole "Filters" / "Tab"
       trip-card.tsx         # Card viaggio (avatar, foto, titolo, tag, badge)
       tag-pill.tsx          # Singolo tag (#where, #when, ...)
-      participants-badge.tsx# Badge partecipanti (avatar + conteggio)
+      participants-badge.tsx# Badge partecipanti (candidarsi / aprire chat)
       default-avatar.tsx    # Avatar profilo di default (icona persona)
       bottom-nav.tsx        # Tab bar inferiore
     chat/
-      chat-header.tsx        # Header conversazione (back → dashboard, avatar, nome, chiamata/video)
-      chat-input.tsx         # Barra di input in basso
+    chat/
+      chat-header.tsx        # Header conversazione template 1:1
+      chat-input.tsx         # Barra di input template (statica)
       message-bubble.tsx     # Bolla singola (variante sent/received)
       message-group.tsx      # Gruppo di bolle consecutive + avatar
+      group-chat-header.tsx  # Header chat di gruppo (back, titolo attività, membri)
+      live-chat-input.tsx    # Input messaggi collegato a sendTripMessageAction
+      message-thread.tsx     # Thread reale (bolle sent/received raggruppate)
+      pending-applications.tsx # Lista candidature da accettare/rifiutare (solo host)
+      chat-realtime.tsx      # Iscrizione realtime ai nuovi messaggi
     ui/                     # Componenti shadcn (Button, Input, Dialog, Select, Label)
 public/
   logo/discover-lens.png    # Logo lente d'ingrandimento
   images/camper-trip.jpg    # Foto del viaggio in camper (contenuto della card)
   images/helena-hills.jpg   # Foto profilo del contatto nella chat
 supabase/
-  schema.sql                # Script SQL: tabella "profiles" + trigger di auto-popolamento
+  schema.sql                # Script SQL: profiles, trips, trip_applications, trip_messages
 .env.local.example          # Template per NEXT_PUBLIC_SUPABASE_URL / ANON_KEY
 ```
 

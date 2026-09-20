@@ -8,11 +8,27 @@ import {
   formatParticipantsBadge,
   getDisplayName,
   getTripTags,
+  isTripFull,
 } from "@/lib/trips/format";
-import { getFeedTrips } from "@/lib/trips/queries";
+import { getCurrentUserId, getFeedTrips } from "@/lib/trips/queries";
+import type { Trip } from "@/lib/trips/types";
+
+function badgeModeFor(
+  trip: Trip,
+  userId: string | null,
+): "apply" | "pending" | "chat" | "full" | "own" {
+  if (!userId) return isTripFull(trip) ? "full" : "apply";
+  if (trip.userId === userId) return "own";
+
+  const mine = (trip.applications ?? []).find((a) => a.applicantId === userId);
+  if (mine?.status === "accepted") return "chat";
+  if (mine?.status === "pending") return "pending";
+  if (isTripFull(trip)) return "full";
+  return "apply";
+}
 
 export default async function DashboardPage() {
-  const trips = await getFeedTrips();
+  const [trips, userId] = await Promise.all([getFeedTrips(), getCurrentUserId()]);
 
   return (
     <PhoneFrame>
@@ -27,6 +43,7 @@ export default async function DashboardPage() {
             {trips.map((trip) => (
               <TripCard
                 key={trip.id}
+                tripId={trip.id}
                 activityType={trip.activityType}
                 creatorName={
                   trip.creator ? getDisplayName(trip.creator) : "Someone"
@@ -34,6 +51,7 @@ export default async function DashboardPage() {
                 title={ACTIVITY_TYPE_META[trip.activityType].label}
                 tags={getTripTags(trip)}
                 participants={formatParticipantsBadge(trip)}
+                badgeMode={badgeModeFor(trip, userId)}
               />
             ))}
           </div>
