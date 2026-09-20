@@ -64,6 +64,19 @@ L'app funziona anche **senza** Supabase collegato: le pagine restano visibili, m
 
 Nessun'altra configurazione è richiesta: non serve una service role key né una connection string al database per questo step.
 
+## Push anche su GitHub
+
+Il remote predefinito di questo ambiente è Origin (Cursor). Per pubblicare lo stesso branch anche su `https://github.com/zzomarc/discover`:
+
+1. Aggiungi un secret **GITHUB_TOKEN** in **Cursor Dashboard → Cloud Agents → Secrets** (Personal Access Token con permesso Contents: Read and write sul repo `discover`).
+2. Da una sessione che vede quel secret:
+
+```bash
+npm run push
+```
+
+Lo script `scripts/push.sh` fa push su Origin e, se `GITHUB_TOKEN` è presente, anche su GitHub. Il token non viene scritto nel repository.
+
 ## Struttura di un "trip" (i post della dashboard)
 
 Le card che vedi in `/dashboard` ("Camper trip", tag, badge partecipanti) sono per ora contenuto statico di esempio. Il **modello dati per renderle reali** è già pronto lato backend:

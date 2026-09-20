@@ -6,7 +6,8 @@
     "dev": "next dev -p 4127",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "push": "bash scripts/push.sh"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
